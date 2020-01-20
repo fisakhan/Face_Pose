@@ -29,17 +29,14 @@ def draw_landmarks(frame, bb, points):
     w = int(bb[2])-int(bb[0])# width
     h = int(bb[3])-int(bb[1])# height
     w2h_ratio = w/h# ratio
-    
     eye2box_ratio = (points[0]-bb[0]) / (bb[2]-points[1])
-    #cv2.putText(frame, str(int(bb[0])), (10,40), font, font_size, blue, 1)
-    #cv2.putText(frame, str(int(bb[1])), (60,40), font, font_size, blue, 1)
-    #cv2.putText(frame, str(int(bb[2])), (110,40), font, font_size, blue, 1)
-    #cv2.putText(frame, str(int(bb[3])), (160,40), font, font_size, blue, 1)
-    #cv2.putText(frame, str(w), (210,40), font, font_size, blue, 1)
-    #cv2.putText(frame, str(h), (260,40), font, font_size, blue, 1)
+    
+    cv2.putText(frame, "Width (pixels): {}".format(w), (10,30), font, font_size, red, 1)
+    cv2.putText(frame, "Height (pixels): {}".format(h), (10,40), font, font_size, red, 1)
+    
     if w2h_ratio < 0.7 or w2h_ratio > 0.9:
         #cv2.putText(frame, "width/height: {0:.2f}".format(w2h_ratio), (10,40), font, font_size, blue, 1)
-        cv2.putText(frame, "Narrow Face", (10,40), font, font_size, red, 1)
+        cv2.putText(frame, "Narrow Face", (10,60), font, font_size, red, 1)
     if eye2box_ratio > 1.5 or eye2box_ratio < 0.88:
         #cv2.putText(frame, "leye2lbox/reye2rbox: {0:.2f}".format((points[0]-bb[0]) / (bb[2]-points[1])), (10,70), font, font_size, red, 1)
         cv2.putText(frame, "Acentric Face", (10,70), font, font_size, red, 1)
@@ -48,7 +45,7 @@ def find_smile(pts):
     dx_eyes = pts[1] - pts[0]# between pupils
     dx_mout = pts[4] - pts[3]# between mouth corners
     smile_ratio = dx_mout/dx_eyes    
-    return dx_eyes, dx_mout, smile_ratio
+    return smile_ratio
 
 def find_roll(pts):
     return pts[6] - pts[5]
@@ -65,13 +62,42 @@ def find_pitch(pts):
     n2m = pts[7] - mou_y
     return e2n/n2m
 
+def find_pose(points):
+    X=points[0:5]
+    Y=points[5:10]
+
+    angle=np.arctan((Y[1]-Y[0])/(X[1]-X[0]))/np.pi*180
+    alpha=np.cos(np.deg2rad(angle))
+    beta=np.sin(np.deg2rad(angle))
+    
+    # rotated points
+    Xr=np.zeros((5))
+    Yr=np.zeros((5))
+    for i in range(5):
+        Xr[i]=alpha*X[i]+beta*Y[i]+(1-alpha)*X[2]-beta*Y[2]
+        Yr[i]=-beta*X[i]+alpha*Y[i]+beta*X[2]+(1-alpha)*Y[2]
+
+    # average distance between eyes and mouth
+    dXtot=(Xr[1]-Xr[0]+Xr[4]-Xr[3])/2
+    dYtot=(Yr[3]-Yr[0]+Yr[4]-Yr[1])/2
+
+    # average distance between nose and eyes
+    dXnose=(Xr[1]-Xr[2]+Xr[4]-Xr[2])/2
+    dYnose=(Yr[3]-Yr[2]+Yr[4]-Yr[2])/2
+
+    # relative rotation 0% is frontal 100% is profile
+    Xfrontal=np.abs(np.clip(-90+90/0.5*dXnose/dXtot,-90,90))
+    Yfrontal=np.abs(np.clip(-90+90/0.5*dYnose/dYtot,-90,90))
+
+    return Xfrontal, Yfrontal
+
 logo_size = 150
 show_size = 150 # Size showed detected faces
 #pixel_in_max=1000
 #show_space=150
 
 font = cv2.FONT_HERSHEY_COMPLEX # Text in video
-font_size=0.7
+font_size=0.4
 blue=(225,0,0)
 green=(0,128,0)
 red=(0,0,255)
@@ -99,7 +125,7 @@ video_max_frame=60
 video_outs=[]
 
 # video capture initialization
-camera = 1#0: internal, 1: external
+camera = 0#0: internal, 1: external
 cap = cv2.VideoCapture(camera)
 
 res_actual = np.zeros((1,2), dtype=int)# initialize resolution
@@ -129,14 +155,21 @@ while (True):
         #process only one face (center ?)  
         bb,points = one_face(frame, bbs, pointss)
         
-        draw_landmarks(frame, bb, points)# draw land marks on face            
+        draw_landmarks(frame, bb, points)# draw land marks on face   
         
-        #dx_eyes, dx_mout, smile_ratio = find_smile(points)            
-        
-        cv2.putText(frame, "Roll: {0:.2f}".format(find_roll(points)), (10,100), font, font_size, red, 1)  
-        cv2.putText(frame, "Yaw: {0:.2f}".format(find_yaw(points)), (10,200), font, font_size, red, 1)
-        cv2.putText(frame, "Pitch: {0:.2f}".format(find_pitch(points)), (10,300), font, font_size, red, 1)
+        cv2.putText(frame, "Roll: {0:.2f} (-50 to +50)".format(find_roll(points)), (10,90), font, font_size, red, 1)  
+        cv2.putText(frame, "Yaw: {0:.2f} (-100 to +100)".format(find_yaw(points)), (10,100), font, font_size, red, 1)
+        cv2.putText(frame, "Pitch: {0:.2f} (0 to 4)".format(find_pitch(points)), (10,110), font, font_size, red, 1)
         #cv2.putText(frame, "smiles: {}, neutrals: {}, idframes: {}".format(Nsmiles, Nneutrals, Nframesperid), (10,460), font, font_size, blue, 1)
+        Xfrontal, Yfrontal = find_pose(points)
+        cv2.putText(frame, "Xfrontal: {0:.2f}".format(Xfrontal), (10,130), font, font_size, red, 1)
+        cv2.putText(frame, "Yfrontal: {0:.2f}".format(Yfrontal), (10,140), font, font_size, red, 1)
+        
+        smile_ratio = find_smile(points) 
+        if smile_ratio > 0.9:
+            cv2.putText(frame, "Expression: Smile", (10,160), font, font_size, green, 1)
+        else:
+            cv2.putText(frame, "Expression: Neutral", (10,160), font, font_size, green, 1)
             
     else:
         cv2.putText(frame_show, 'no face', (10,logo_size+200), font, font_size, blue, 2)
