@@ -1,5 +1,6 @@
 # Face_Pose
 <b>Find pose (Yaw, Roll, Pitch) of a face in live video from webcam.</b><br>
+Using two different face detectors: mtcnn and retinaface.<br>
 
 Detects faces in a live video from webcam and selects only one face for further processing.<br> 
 Roll: -x to x (0 is frontal, positive is clock-wise, negative is anti-clock-wise)<br>
