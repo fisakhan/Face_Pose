@@ -91,6 +91,7 @@ def find_pose(points):
 
     return Xfrontal, Yfrontal
 
+
 logo_size = 150
 show_size = 150 # Size showed detected faces
 #pixel_in_max=1000

@@ -1,12 +1,17 @@
 """
-Asif Khan
+October 03, 2020
+Author: Asif Khan
 """
 import tensorflow as tf
 import numpy as np
 import cv2
+
+# MTCNN face detector
 #from mtcnn.mtcnn import MTCNN
 #detector = MTCNN()
-detector_model = tf.saved_model.load('./tf-retinaface_mbv2/')
+
+# RetinaFace face detector
+detector_model = tf.saved_model.load('./tf_retinaface_mbv2/')
 
 def one_face(frame, bbs, pointss):
     # process only one face (center ?)
@@ -64,33 +69,33 @@ def find_pitch(pts):
     return e2n/n2m
 
 def find_pose(points):
-    X=points[0:5]
-    Y=points[5:10]
+    X = points[0:5]
+    Y = points[5:10]
 
-    angle=np.arctan((Y[1]-Y[0])/(X[1]-X[0]))/np.pi*180
-    alpha=np.cos(np.deg2rad(angle))
-    beta=np.sin(np.deg2rad(angle))
+    angle = np.arctan((Y[1]-Y[0])/(X[1]-X[0]))/np.pi*180
+    alpha = np.cos(np.deg2rad(angle))
+    beta = np.sin(np.deg2rad(angle))
     
     # rotated points
-    Xr=np.zeros((5))
-    Yr=np.zeros((5))
+    Xr = np.zeros((5))
+    Yr = np.zeros((5))
     for i in range(5):
-        Xr[i]=alpha*X[i]+beta*Y[i]+(1-alpha)*X[2]-beta*Y[2]
-        Yr[i]=-beta*X[i]+alpha*Y[i]+beta*X[2]+(1-alpha)*Y[2]
+        Xr[i] = alpha*X[i]+beta*Y[i]+(1-alpha)*X[2]-beta*Y[2]
+        Yr[i] = -beta*X[i]+alpha*Y[i]+beta*X[2]+(1-alpha)*Y[2]
 
     # average distance between eyes and mouth
-    dXtot=(Xr[1]-Xr[0]+Xr[4]-Xr[3])/2
-    dYtot=(Yr[3]-Yr[0]+Yr[4]-Yr[1])/2
+    dXtot = (Xr[1]-Xr[0]+Xr[4]-Xr[3])/2
+    dYtot = (Yr[3]-Yr[0]+Yr[4]-Yr[1])/2
 
     # average distance between nose and eyes
-    dXnose=(Xr[1]-Xr[2]+Xr[4]-Xr[2])/2
-    dYnose=(Yr[3]-Yr[2]+Yr[4]-Yr[2])/2
+    dXnose = (Xr[1]-Xr[2]+Xr[4]-Xr[2])/2
+    dYnose = (Yr[3]-Yr[2]+Yr[4]-Yr[2])/2
 
     # relative rotation 0% is frontal 100% is profile
-    Xfrontal=np.abs(np.clip(-90+90/0.5*dXnose/dXtot,-90,90))
-    Yfrontal=np.abs(np.clip(-90+90/0.5*dYnose/dYtot,-90,90))
+    Xfrontal = np.abs(np.clip(-90+90/0.5*dXnose/dXtot,-90,90))
+    Yfrontal = np.abs(np.clip(-90+90/0.5*dYnose/dYtot,-90,90))
 
-    return Xfrontal, Yfrontal
+    return Xfrontal, Yfrontal# horizontal and vertical angles
 
 def face_detector(image, image_shape_max=640, score_min=None, pixel_min=None, pixel_max=None, Ain_min=None):
     '''
@@ -244,61 +249,55 @@ def recover_pad_output(outputs, pad_params):
 
     return outputs
 
+#============================================================================
+# FONT SETTING (font style, size and color)
+font = cv2.FONT_HERSHEY_COMPLEX # Text in video
+font_size = 0.4
+blue = (225,0,0)
+green = (0,128,0)
+red = (0,0,255)
+orange = (0,140,255)
+
+# DEMO GUI SETTING
+total_size = np.array([750, 1400], dtype=int) # demo-gui size (resolution)
+# complete/final frame to be shown on demo-gui
+frame_show = np.ones((total_size[0], total_size[1], 3), dtype='uint8')*255 
 logo_size = 150
 show_size = 150 # Size showed detected faces
-#pixel_in_max=1000
-#show_space=150
-
-font = cv2.FONT_HERSHEY_COMPLEX # Text in video
-font_size=0.4
-blue=(225,0,0)
-green=(0,128,0)
-red=(0,0,255)
-orange=(0,140,255)
-
-total_size = np.array([750, 1400], dtype=int) # demo resolution
-res_try = np.array([1080, 1920], dtype=int) # video resolution
-
 res_max = np.zeros((2), dtype=int)
 res_resize = np.zeros((2), dtype=int)
-PERC_CROP_HEIGHT=0
-PERC_CROP_WIDTH=0
 
-print('initializing variables...')
-#minsize = 20 # minimum size of face
-#threshold = [ 0.6, 0.7, 0.7 ]  # three steps's threshold
-#factor = 0.709 # scale factor
 
-# Recordings on/off
-image_save=False
-video_save = True
-fps=10.
-video_format=cv2.VideoWriter_fourcc('M','J','P','G')
-video_max_frame=60
-video_outs=[]
+# RECORDING SETTING (Recordings on/off)
+image_save = False# save face image
+video_save = True# save video
+fps = 10.
+video_format = cv2.VideoWriter_fourcc('M','J','P','G')
+if video_save:
+    video_file = 'video_out.avi'
+    video_out = cv2.VideoWriter(video_file, video_format, fps, (640,480))
 
-# video capture initialization
+# CAMERA SETTING (video capture initialization)
 camera = 0#0: internal, 1: external
 cap = cv2.VideoCapture(camera)
 
-res_actual = np.zeros((1,2), dtype=int)# initialize resolution
-res_actual[0,0]=cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-res_actual[0,1]=cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-print("camera resolution: {}".format(res_actual))
+res_actual = np.zeros((1,2), dtype=int)# actual resolution of the camera
+res_actual[0,0] = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+res_actual[0,1] = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+print("\ncamera resolution: {}".format(res_actual))
 
-if video_save:
-    video_file='video_out.avi'
-    video_out=cv2.VideoWriter(video_file, video_format, fps, (640,480))
 
+# PROCESS FRAMES
 while (True): 
     
-    rets, frames = cap.read()
-    if not (rets):
+    ret, frame = cap.read()# read frame from camera
+    if not (ret):
         break
-    frame = np.array(frames)
+    
+    frame = np.array(frame)
     frame = cv2.flip(frame,1)
-    frame_show=np.ones((total_size[0],total_size[1],3),dtype='uint8')*255    
-    res_crop = np.asarray(frame.shape)[0:2]         
+       
+    res_crop = np.asarray(frame.shape)[0:2]# ?   
     
     #bbs_all, pointss_all = detector.detect_faces(frame)# face detection
     frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
