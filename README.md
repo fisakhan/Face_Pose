@@ -13,4 +13,6 @@ numpy-1.17.0 to 1.19.1<br>
 tensorflow-2.0.0 to 2.3.0<br>
 opencv-python-4.0.0.21 to 4.4.0.42<br>
 
-Acknowledgement: Face detection is done useing mtcnn from https://github.com/ipazc/mtcnn.
+<b>Acknowledgement:</b><br>
+Face detection using mtcnn https://github.com/ipazc/mtcnn.
+Face detection using arcface https://github.com/peteryuX/retinaface-tf2
