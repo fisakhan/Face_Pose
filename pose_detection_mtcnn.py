@@ -70,7 +70,8 @@ def find_pose(points):
     alpha=np.cos(np.deg2rad(angle))
     beta=np.sin(np.deg2rad(angle))
     
-    # rotated points
+    # compensate for roll: rotate points (landmarks) so that both the eyes are
+    # alligned horizontally 
     Xr=np.zeros((5))
     Yr=np.zeros((5))
     for i in range(5):
