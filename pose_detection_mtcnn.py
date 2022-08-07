@@ -1,14 +1,34 @@
 """
-Asif Khan
+Author: Asif Khan
 """
 
-import numpy as np
 import cv2
+import numpy as np
 from mtcnn.mtcnn import MTCNN
 detector = MTCNN()
 
+import matplotlib.pyplot as plt
+
 def one_face(frame, bbs, pointss):
-    # process only one face (center ?)
+    """
+    Parameters
+    ----------
+    frame : TYPE
+        RGB image (numpy array).
+    bbs : TYPE - Array of flaot64, Size = (N, 5)
+        coordinates of bounding boxes for all detected faces.
+    pointss : TYPE - Array of flaot32, Size = (N, 10)
+        coordinates of landmarks for all detected faces.
+
+    Returns
+    -------
+    bb : TYPE - Array of float 64, Size = (5,)
+        coordinates of bounding box for the selected face.
+    points : TYPE
+        coordinates of five landmarks for the selected face.
+
+    """
+    # select only process only one face (center ?)
     offsets = [(bbs[:,0]+bbs[:,2])/2-frame.shape[1]/2,
                (bbs[:,1]+bbs[:,3])/2-frame.shape[0]/2]
     offset_dist = np.sum(np.abs(offsets),0)
@@ -18,28 +38,44 @@ def one_face(frame, bbs, pointss):
     return bb, points
             
 def draw_landmarks(frame, bb, points):
+    '''
+    Parameters
+    ----------
+    frame : TYPE
+        RGB image
+    bb : TYPE - Array of float64, Size = (5,)
+        coordinates of bounding box for the selected face.
+    points : TYPE - Array of float32, Size = (10,)
+        coordinates of landmarks for the selected faces.
+
+    Returns
+    -------
+    None.
+
+    '''
+    bb = bb.astype(int)
+    points = points.astype(int)
     # draw rectangle and landmarks on face
-    cv2.rectangle(frame,(int(bb[0]),int(bb[1])),(int(bb[2]),int(bb[3])),orange,2)
-    cv2.circle(frame, (points[0], points[5]), 2, (255,0,0), 2)# eye
-    cv2.circle(frame, (points[1], points[6]), 2, (255,0,0), 2)
-    cv2.circle(frame, (points[2], points[7]), 2, (255,0,0), 2)# nose
-    cv2.circle(frame, (points[3], points[8]), 2, (255,0,0), 2)# mouth
-    cv2.circle(frame, (points[4], points[9]), 2, (255,0,0), 2)
+    cv2.rectangle(frame, (bb[0], bb[1]), (bb[2], bb[3]), red, 1)
+    cv2.circle(frame, (points[0], points[5]), 2, blue, 2)# left eye
+    cv2.circle(frame, (points[1], points[6]), 2, blue, 2)# right eye
+    cv2.circle(frame, (points[2], points[7]), 2, blue, 2)# nose
+    cv2.circle(frame, (points[3], points[8]), 2, blue, 2)# mouth - left
+    cv2.circle(frame, (points[4], points[9]), 2, blue, 2)# mouth - right 
     
     w = int(bb[2])-int(bb[0])# width
     h = int(bb[3])-int(bb[1])# height
-    w2h_ratio = w/h# ratio
+    w2h_ratio = w/h# width to height ratio
     eye2box_ratio = (points[0]-bb[0]) / (bb[2]-points[1])
     
-    cv2.putText(frame, "Width (pixels): {}".format(w), (10,30), font, font_size, red, 1)
-    cv2.putText(frame, "Height (pixels): {}".format(h), (10,40), font, font_size, red, 1)
+    #cv2.putText(frame, "Width (pixels): {}".format(w), (10,30), font, font_size, red, 1)
+    #cv2.putText(frame, "Height (pixels): {}".format(h), (10,40), font, font_size, red, 1)
     
     if w2h_ratio < 0.7 or w2h_ratio > 0.9:
         #cv2.putText(frame, "width/height: {0:.2f}".format(w2h_ratio), (10,40), font, font_size, blue, 1)
-        cv2.putText(frame, "Narrow Face", (10,60), font, font_size, red, 1)
+        cv2.putText(frame, "Face: Narrow", (10, 140), font, font_size, red, 1)
     if eye2box_ratio > 1.5 or eye2box_ratio < 0.88:
-        #cv2.putText(frame, "leye2lbox/reye2rbox: {0:.2f}".format((points[0]-bb[0]) / (bb[2]-points[1])), (10,70), font, font_size, red, 1)
-        cv2.putText(frame, "Acentric Face", (10,70), font, font_size, red, 1)
+        cv2.putText(frame, "Face: not in center of the bounding box", (10, 140), font, font_size, blue, 1)
 
 def find_smile(pts):
     dx_eyes = pts[1] - pts[0]# between pupils
@@ -47,84 +83,113 @@ def find_smile(pts):
     smile_ratio = dx_mout/dx_eyes    
     return smile_ratio
 
-def find_roll(pts):
-    return pts[6] - pts[5]
+def find_roll(points):
+    """
+    Parameters
+    ----------
+    points : TYPE - Array of float32, Size = (10,)
+        coordinates of landmarks for the selected faces.
+    Returns
+    -------
+    TYPE
+        roll of face.
 
-def find_yaw(pts):
-    le2n = pts[2] - pts[0]
-    re2n = pts[1] - pts[2]
+    """
+    return points[6] - points[5]
+
+def find_yaw(points):
+    """
+    Parameters
+    ----------
+    points : TYPE - Array of float32, Size = (10,)
+        coordinates of landmarks for the selected faces.
+    Returns
+    -------
+    TYPE
+        yaw of face.
+
+    """
+    le2n = points[2] - points[0]
+    re2n = points[1] - points[2]
     return le2n - re2n
 
-def find_pitch(pts):
-    eye_y = (pts[5] + pts[6]) / 2
-    mou_y = (pts[8] + pts[9]) / 2
-    e2n = eye_y - pts[7]
-    n2m = pts[7] - mou_y
-    return e2n/n2m
+def find_pitch(points):
+    """
+    Parameters
+    ----------
+    points : TYPE - Array of float32, Size = (10,)
+        coordinates of landmarks for the selected faces.
+    Returns
+    -------
+    Pitch
+    """
+    eye_y = (points[5] + points[6]) / 2
+    mou_y = (points[8] + points[9]) / 2
+    e2n = eye_y - points[7]
+    n2m = points[7] - mou_y
+    return e2n / n2m
 
 def find_pose(points):
-    X=points[0:5]
-    Y=points[5:10]
+    """
+    Parameters
+    ----------
+    points : TYPE - Array of float32, Size = (10,)
+        coordinates of landmarks for the selected faces.
+    Returns
+    -------
+    Angle
+    Yaw
+    Pitch
+    TYPE
+        pitch of face.
 
-    angle=np.arctan((Y[1]-Y[0])/(X[1]-X[0]))/np.pi*180
-    alpha=np.cos(np.deg2rad(angle))
-    beta=np.sin(np.deg2rad(angle))
+    """
+    LMx = points[0:5]# horizontal coordinates of landmarks
+    LMy = points[5:10]# vertical coordinates of landmarks
     
-    # compensate for roll: rotate points (landmarks) so that both the eyes are
-    # alligned horizontally 
-    Xr=np.zeros((5))
-    Yr=np.zeros((5))
-    for i in range(5):
-        Xr[i]=alpha*X[i]+beta*Y[i]+(1-alpha)*X[2]-beta*Y[2]
-        Yr[i]=-beta*X[i]+alpha*Y[i]+beta*X[2]+(1-alpha)*Y[2]
-
+    dPx_eyes = max((LMx[1] - LMx[0]), 1)
+    dPy_eyes = (LMy[1] - LMy[0])
+    angle = np.arctan(dPy_eyes / dPx_eyes) # angle for rotation based on slope eyes
+    
+    alpha = np.cos(angle)
+    beta = np.sin(angle)
+    # rotated landmarks
+    LMxr = (alpha * LMx + beta * LMy + (1 - alpha) * LMx[2] / 2 - beta * LMy[2] / 2) 
+    LMyr = (-beta * LMx + alpha * LMy + beta * LMx[2] / 2 + (1 - alpha) * LMy[2] / 2)
+    
     # average distance between eyes and mouth
-    dXtot=(Xr[1]-Xr[0]+Xr[4]-Xr[3])/2
-    dYtot=(Yr[3]-Yr[0]+Yr[4]-Yr[1])/2
-
+    dXtot = (LMxr[1] - LMxr[0] + LMxr[4] - LMxr[3]) / 2
+    dYtot = (LMyr[3] - LMyr[0] + LMyr[4] - LMyr[1]) / 2
+    
     # average distance between nose and eyes
-    dXnose=(Xr[1]-Xr[2]+Xr[4]-Xr[2])/2
-    dYnose=(Yr[3]-Yr[2]+Yr[4]-Yr[2])/2
+    dXnose = (LMxr[1] - LMxr[2] + LMxr[4] - LMxr[2]) / 2
+    dYnose = (LMyr[3] - LMyr[2] + LMyr[4] - LMyr[2]) / 2
+    
+    # relative rotation 0 degree is frontal 90 degree is profile
+    Xfrontal = (-90+90 / 0.5 * dXnose / dXtot) if dXtot != 0 else 0
+    Yfrontal = (-90+90 / 0.5 * dYnose / dYtot) if dYtot != 0 else 0
 
-    # relative rotation 0% is frontal 100% is profile
-    Xfrontal=np.abs(np.clip(-90+90/0.5*dXnose/dXtot,-90,90))
-    Yfrontal=np.abs(np.clip(-90+90/0.5*dYnose/dYtot,-90,90))
+    return angle * 180 / np.pi, Xfrontal, Yfrontal
 
-    return Xfrontal, Yfrontal
-
-
-logo_size = 150
-show_size = 150 # Size showed detected faces
-#pixel_in_max=1000
-#show_space=150
 
 font = cv2.FONT_HERSHEY_COMPLEX # Text in video
-font_size=0.4
-blue=(225,0,0)
-green=(0,128,0)
-red=(0,0,255)
-orange=(0,140,255)
+font_size = 0.6
+blue = (0, 0, 255)
+green = (0,128,0)
+red = (255, 0, 0)
 
-total_size = np.array([750, 1400], dtype=int) # demo resolution
-res_try = np.array([1080, 1920], dtype=int) # video resolution
-
-res_max = np.zeros((2), dtype=int)
-res_resize = np.zeros((2), dtype=int)
-PERC_CROP_HEIGHT=0
-PERC_CROP_WIDTH=0
-
-print('initializing variables...')
-minsize = 20 # minimum size of face
-threshold = [ 0.6, 0.7, 0.7 ]  # three steps's threshold
-factor = 0.709 # scale factor
+#print('initializing variables...')
+#minsize = 20 # minimum size of face
+#threshold = [ 0.6, 0.7, 0.7 ]  # three steps's threshold
+#factor = 0.709 # scale factor
 
 # Recordings on/off
-image_save=False
-video_save = True
-fps=10.
+image_save = False
+video_save = False
+fps = 10.
 video_format=cv2.VideoWriter_fourcc('M','J','P','G')
-video_max_frame=60
-video_outs=[]
+#video_max_frame=60
+#video_outs=[]
 
 # video capture initialization
 camera = 0#0: internal, 1: external
@@ -136,74 +201,68 @@ res_actual[0,1]=cap.get(cv2.CAP_PROP_FRAME_WIDTH)
 print("camera resolution: {}".format(res_actual))
 
 if video_save:
-    video_file='video_out.avi'
-    video_out=cv2.VideoWriter(video_file, video_format, fps, (640,480))
+    video_file = 'video_out.avi'
+    video_out = cv2.VideoWriter(video_file, video_format, fps, (640, 480))
 
+# process each frame from camera
 while (True): 
     
-    rets, frames = cap.read()
+    rets, frame = cap.read()
     if not (rets):
+        print("Error: can't read from camera.")
         break
-    frame = np.array(frames)
-    frame = cv2.flip(frame,1)
-    frame_show=np.ones((total_size[0],total_size[1],3),dtype='uint8')*255    
-    res_crop = np.asarray(frame.shape)[0:2]         
     
-    bbs_all, pointss_all = detector.detect_faces(frame)# face detection
-   
-    bbs = bbs_all.copy()
-    pointss = pointss_all.copy()
+    image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)# convert to rgb
+    image_rgb = cv2.flip(image_rgb, 1)# flip for user friendliness
     
-    if len(bbs_all) > 0:# if at least one face is detected
-        #process only one face (center ?)  
-        bb,points = one_face(frame, bbs, pointss)
+    # face detection
+    try:
+        bounding_boxes, landmarks = detector.detect_faces(image_rgb)
+        bbs = bounding_boxes.copy()
+        lmarks = landmarks.copy()
+    except:
+        print("Error: face detector error.")
+        break
+    
+    # if at least one face is detected
+    if len(bounding_boxes) > 0:
         
-        draw_landmarks(frame, bb, points)# draw land marks on face   
+        # process only one face (center ?) if multiple faces detected 
+        bb, lmarks_5 = one_face(image_rgb, bbs, lmarks)
+        draw_landmarks(image_rgb, bb, lmarks_5)# draw landmarks and bbox 
         
-        cv2.putText(frame, "Roll: {0:.2f} (-50 to +50)".format(find_roll(points)), (10,90), font, font_size, red, 1)  
-        cv2.putText(frame, "Yaw: {0:.2f} (-100 to +100)".format(find_yaw(points)), (10,100), font, font_size, red, 1)
-        cv2.putText(frame, "Pitch: {0:.2f} (0 to 4)".format(find_pitch(points)), (10,110), font, font_size, red, 1)
-        #cv2.putText(frame, "smiles: {}, neutrals: {}, idframes: {}".format(Nsmiles, Nneutrals, Nframesperid), (10,460), font, font_size, blue, 1)
-        Xfrontal, Yfrontal = find_pose(points)
-        cv2.putText(frame, "Xfrontal: {0:.2f}".format(Xfrontal), (10,130), font, font_size, red, 1)
-        cv2.putText(frame, "Yfrontal: {0:.2f}".format(Yfrontal), (10,140), font, font_size, red, 1)
+        cv2.putText(image_rgb, "Face Pose", (10, 40), font, 0.8, blue, 2) 
+        cv2.putText(image_rgb, "Method 1", (10, 60), font, font_size, blue, 2) 
+        cv2.putText(image_rgb, "Roll: {0:.2f} (-50 to +50)".format(find_roll(lmarks_5)), (10, 80), font, font_size, blue, 1)  
+        cv2.putText(image_rgb, "Yaw: {0:.2f} (-100 to +100)".format(find_yaw(lmarks_5)), (10, 100), font, font_size, blue, 1)
+        cv2.putText(image_rgb, "Pitch: {0:.2f} (0 to 4)".format(find_pitch(lmarks_5)), (10, 120), font, font_size, blue, 1)
         
-        smile_ratio = find_smile(points) 
+        angle, Xfrontal, Yfrontal = find_pose(lmarks_5)
+        cv2.putText(image_rgb, "Method 2", (10, 160), font, font_size, blue, 2)
+        cv2.putText(image_rgb, "Roll: {0:.2f} degrees".format(angle), (10,180), font, font_size, blue, 1)
+        cv2.putText(image_rgb, "Yaw: {0:.2f} degrees".format(Xfrontal), (10,200), font, font_size, blue, 1)
+        cv2.putText(image_rgb, "Pitch: {0:.2f} degrees".format(Yfrontal), (10,220), font, font_size, blue, 1)
+        
+        # smile detection
+        smile_ratio = find_smile(lmarks_5) 
         if smile_ratio > 0.9:
-            cv2.putText(frame, "Expression: Smile", (10,160), font, font_size, green, 1)
+            cv2.putText(image_rgb, "Smile: Yes", (10,260), font, font_size, green, 2)
         else:
-            cv2.putText(frame, "Expression: Neutral", (10,160), font, font_size, green, 1)
-            
+            cv2.putText(image_rgb, "Smile: No", (10,260), font, font_size, green, 2)
     else:
-        cv2.putText(frame_show, 'no face', (10,logo_size+200), font, font_size, blue, 2)
-                
-    res_max[0]=total_size[0]#-show_size
-    res_max[1]=total_size[1]-2*logo_size
-    
-    res_resize[1]=res_max[1]
-    res_resize[0]=res_max[1]/res_crop[1]*res_crop[0]
-
-    if  res_resize[0]>res_max[0]:
-        res_resize[0]=res_max[0]
-        res_resize[1]=int(res_max[0]/res_crop[0]*res_crop[1]/2)*2
-
-    frame_resize = cv2.resize(frame,(res_resize[1],res_resize[0]), interpolation = cv2.INTER_LINEAR)    
-    space_vert=(total_size[1]-res_resize[1]) // 2 
-
-    frame_show[:frame_resize.shape[0],space_vert:-space_vert,:]=frame_resize 
-    
-    cv2.putText(frame_show, 'q: quit', (10,50), font, font_size, blue, 2)    
-    cv2.imshow('Pose Detection - MTCNN',frame_show)    
+        cv2.putText(image_rgb, 'no face detected', (10, 20), font, font_size, blue, 2)
     
     if video_save:
-        video_out.write(frame)        
-        
+        frame = cv2.resize(frame, (640, 480))
+        video_out.write(frame)
+    
+    cv2.putText(image_rgb, "Press Q to quit.", (10, 460), font, font_size, blue, 1)
+    image_bgr = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR)
+    cv2.imshow('Face Pose Detection - MTCNN', image_bgr) 
     key_pressed = cv2.waitKey(1) & 0xFF
-    option=[]
-    options=['Quit']
     if key_pressed == ord('q'):
         break
-
+    
 cap.release()
 
 if video_save:
