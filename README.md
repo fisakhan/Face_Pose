@@ -25,10 +25,10 @@ Each of the two python files run a demo that estimates pose of a face in a live 
 Note: These methods are very efficient and do not require huge data, training or machine learning.
 
 <b>Tested on:</b><br>
-Ubuntu-18.04<br>
-numpy-1.17.0 to 1.19.1<br>
-tensorflow-2.0.0 to 2.6.0<br>
-opencv-python-4.0.0.21 to 4.4.0.42<br>
+Ubuntu 18.04, Ubuntu 22.04.1 LTS<br>
+numpy==1.17.0 to numpy==1.23.2<br>
+tensorboard==2.0.0 to tensorboard==2.9.1<br>
+opencv-python==4.0.0.21 to opencv-python==4.6.0.66<br>
 
 <b>Acknowledgement:</b><br>
 Face detection using mtcnn https://github.com/ipazc/mtcnn.<br>

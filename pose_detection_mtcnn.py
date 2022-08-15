@@ -7,7 +7,7 @@ import numpy as np
 from mtcnn.mtcnn import MTCNN
 detector = MTCNN()
 
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 def one_face(frame, bbs, pointss):
     """
