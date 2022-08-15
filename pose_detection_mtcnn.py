@@ -9,6 +9,44 @@ detector = MTCNN()
 
 #import matplotlib.pyplot as plt
 
+def detect_faces(image, image_shape_max=640):
+    '''
+    Performs face detection using retinaface method with speed boost and initial quality checks based on whole image size
+    
+    Parameters
+    ----------
+    image : uint8
+        image for face detection.
+    image_shape_max : int, optional
+        maximum size (in pixels) of image. The default is None.
+
+    Returns
+    -------
+    float array
+        bounding boxes and score.
+    float array
+        landmarks.
+
+    '''
+
+    image_shape = image.shape[:2]
+    
+    # perform image resize for faster detection    
+    if image_shape_max:
+        scale_factor = max([1, max(image_shape) / image_shape_max])
+    else:
+        scale_factor = 1
+        
+    if scale_factor > 1:        
+        scaled_image = cv2.resize(image, (0, 0), fx = 1/scale_factor, fy = 1/scale_factor)
+        bbs, points = detector.detect_faces(scaled_image)
+        bbs[:,:4] *= scale_factor
+        points *= scale_factor
+    else:
+        bbs, points = detector.detect_faces(image)
+    
+    return bbs, points
+
 def one_face(frame, bbs, pointss):
     """
     Parameters
@@ -71,11 +109,10 @@ def draw_landmarks(frame, bb, points):
     #cv2.putText(frame, "Width (pixels): {}".format(w), (10,30), font, font_size, red, 1)
     #cv2.putText(frame, "Height (pixels): {}".format(h), (10,40), font, font_size, red, 1)
     
-    if w2h_ratio < 0.7 or w2h_ratio > 0.9:
-        #cv2.putText(frame, "width/height: {0:.2f}".format(w2h_ratio), (10,40), font, font_size, blue, 1)
-        cv2.putText(frame, "Face: Narrow", (10, 140), font, font_size, red, 1)
     if eye2box_ratio > 1.5 or eye2box_ratio < 0.88:
         cv2.putText(frame, "Face: not in center of the bounding box", (10, 140), font, font_size, blue, 1)
+    if w2h_ratio < 0.7 or w2h_ratio > 0.9:
+        cv2.putText(frame, "Face: long and narrow", (10, 160), font, font_size, blue, 1)
 
 def find_smile(pts):
     dx_eyes = pts[1] - pts[0]# between pupils
@@ -217,7 +254,8 @@ while (True):
     
     # face detection
     try:
-        bounding_boxes, landmarks = detector.detect_faces(image_rgb)
+        #bounding_boxes, landmarks = detector.detect_faces(image_rgb)
+        bounding_boxes, landmarks = detect_faces(image_rgb)
         bbs = bounding_boxes.copy()
         lmarks = landmarks.copy()
     except:
@@ -238,17 +276,17 @@ while (True):
         cv2.putText(image_rgb, "Pitch: {0:.2f} (0 to 4)".format(find_pitch(lmarks_5)), (10, 120), font, font_size, blue, 1)
         
         angle, Xfrontal, Yfrontal = find_pose(lmarks_5)
-        cv2.putText(image_rgb, "Method 2", (10, 160), font, font_size, blue, 2)
-        cv2.putText(image_rgb, "Roll: {0:.2f} degrees".format(angle), (10,180), font, font_size, blue, 1)
-        cv2.putText(image_rgb, "Yaw: {0:.2f} degrees".format(Xfrontal), (10,200), font, font_size, blue, 1)
-        cv2.putText(image_rgb, "Pitch: {0:.2f} degrees".format(Yfrontal), (10,220), font, font_size, blue, 1)
+        cv2.putText(image_rgb, "Method 2", (10, 180), font, font_size, blue, 2)
+        cv2.putText(image_rgb, "Roll: {0:.2f} degrees".format(angle), (10,200), font, font_size, blue, 1)
+        cv2.putText(image_rgb, "Yaw: {0:.2f} degrees".format(Xfrontal), (10,220), font, font_size, blue, 1)
+        cv2.putText(image_rgb, "Pitch: {0:.2f} degrees".format(Yfrontal), (10,240), font, font_size, blue, 1)
         
         # smile detection
         smile_ratio = find_smile(lmarks_5) 
         if smile_ratio > 0.9:
-            cv2.putText(image_rgb, "Smile: Yes", (10,260), font, font_size, green, 2)
+            cv2.putText(image_rgb, "Smile: Yes", (10,280), font, font_size, blue, 2)
         else:
-            cv2.putText(image_rgb, "Smile: No", (10,260), font, font_size, green, 2)
+            cv2.putText(image_rgb, "Smile: No", (10,280), font, font_size, blue, 2)
     else:
         cv2.putText(image_rgb, 'no face detected', (10, 20), font, font_size, blue, 2)
     
