@@ -10,7 +10,7 @@ Yaw:  -x to x (0: no rotation, positive: looking right, negative: looking left)<
 Pitch: 0 to 4 (0: looking upward, 1: looking straight, >1: looking downward)<br><br>
 Roll, Yaw and Pitch are in pixel ratios and provide an estimate of where the face is looking at. In case of mtcnn Roll is (-50 to 50), Yaw is (-100 to 100). Pitch is 0 to 4 because you can divide the distance between eyes and lips into 4 units where one unit is between lips to nose-tip and 3 units between nose-tip to eyes.<br>
 
-<b>Method 2 (as accurate as (National Institute of Standards and Technology - NIST)[[I'm an inline-style link](https://www.google.com)
+<b>Method 2: as accurate as (NIST Face Image Quality Assessment)[https://pages.nist.gov/frvt/api/FRVT_ongoing_quality_sidd_api.pdf]
 ]</b><br>
 This method provides pose parameters in angels (degrees).<br>
 Roll: -90 to 90 (0: no rotation, positive: clock-wise rotation, negative: anti-clock-wise rotation)<br>
