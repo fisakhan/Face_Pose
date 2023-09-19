@@ -1,8 +1,6 @@
 import cv2
 import numpy as np
-import tensorflow.experimental.numpy as tnp
 
-tnp.experimental_enable_numpy_behavior()
 class SCRFD():
     def __init__(self, onnxmodel, confThreshold=0.5, nmsThreshold=0.5):
         self.inpWidth = 640
