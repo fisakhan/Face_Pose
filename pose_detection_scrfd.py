@@ -65,9 +65,9 @@ class SCRFD():
         # inference output
         scores_list, bboxes_list, kpss_list = [], [], []
         for idx, stride in enumerate(self._feat_stride_fpn):
-            scores = outs[idx * self.fmc][0]
-            bbox_preds = outs[idx * self.fmc + 1][0] * stride
-            kps_preds = outs[idx * self.fmc + 2][0] * stride
+            scores = outs[idx][0]
+            bbox_preds = outs[idx + self.fmc][0]  * stride
+            kps_preds = outs[idx + self.fmc * 2][0] * stride
             height = blob.shape[2] // stride
             width = blob.shape[3] // stride
             anchor_centers = np.stack(np.mgrid[:height, :width][::-1], axis=-1).astype(np.float32)
