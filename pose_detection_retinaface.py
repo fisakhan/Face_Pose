@@ -4,6 +4,9 @@ Author: Asif Khan
 import tensorflow as tf
 import numpy as np
 import cv2
+import tensorflow.experimental.numpy as tnp
+
+tnp.experimental_enable_numpy_behavior()
 
 # load retinaFace face detector
 detector_model = tf.saved_model.load('./models/tf_retinaface_mbv2/')
@@ -306,6 +309,7 @@ def recover_pad_output(outputs, pad_params):
 #============================================================================
 # FONT SETTING (font style, size and color)
 font = cv2.FONT_HERSHEY_COMPLEX # Text in video
+font_size = 0.6
 blue = (0, 0, 255)
 green = (0,128,0)
 red = (255, 0, 0)
