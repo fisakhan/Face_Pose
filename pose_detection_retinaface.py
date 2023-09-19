@@ -4,6 +4,9 @@ Author: Asif Khan
 import tensorflow as tf
 import numpy as np
 import cv2
+import tensorflow.experimental.numpy as tnp
+
+tnp.experimental_enable_numpy_behavior()
 
 # load retinaFace face detector
 detector_model = tf.saved_model.load('./models/tf_retinaface_mbv2/')
