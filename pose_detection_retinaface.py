@@ -309,6 +309,7 @@ def recover_pad_output(outputs, pad_params):
 #============================================================================
 # FONT SETTING (font style, size and color)
 font = cv2.FONT_HERSHEY_COMPLEX # Text in video
+font_size = 0.6
 blue = (0, 0, 255)
 green = (0,128,0)
 red = (255, 0, 0)
