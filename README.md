@@ -33,3 +33,4 @@ opencv-python==4.0.0.21 to opencv-python==4.6.0.66<br>
 <b>Acknowledgement:</b><br>
 Face detection using mtcnn https://github.com/ipazc/mtcnn.<br>
 Face detection using retinaface https://github.com/peteryuX/retinaface-tf2
+Face detection using scrfd https://github.com/deepinsight/insightface/tree/master/detection/scrfd
